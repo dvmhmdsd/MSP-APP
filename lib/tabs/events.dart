@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:msp_app/ui/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const baseUrl = "https://my-json-server.typicode.com/salah-rashad/msp-json";
+const baseUrl = "https://msp-app-dashboard.herokuapp.com/api";
 
 class API {
   static Future getUsers() {
@@ -15,27 +17,27 @@ class API {
 }
 
 class Event {
-  final int id;
+  final String id;
   final String title;
-  final String time;
-  final String location;
-  final String mapUrl;
   final String description;
-  final String image;
-  final String formUrl;
-  final int price;
+  final String price;
+  final String location;
+  final String formLink;
+  final String date;
+  final String time;
+  final String img;
   final List<Topic> topics;
 
   Event({
     this.id,
     this.title,
-    this.time,
-    this.location,
-    this.mapUrl,
     this.description,
-    this.image,
-    this.formUrl,
     this.price,
+          this.location,
+          this.formLink,
+          this.date,
+          this.time,
+          this.img,
     this.topics,
   });
 
@@ -45,15 +47,15 @@ class Event {
     List<Topic> topicsList = list.map((i) => Topic.fromJson(i)).toList();
 
     return Event(
-      id: json['id'],
+      id: json['_id'],
       title: json['title'],
-      time: json['time'],
-      location: json['location'],
-      mapUrl: json['map_url'],
       description: json['description'],
-      image: json['image'],
-      formUrl: json['form_url'],
-      price: json['ticket_price'],
+      price: json['price'],
+      location: json['location'],
+      formLink: json['formLink'],
+      date: json['date'],
+      time: json['time'],
+      img: json['imgURL'],
       topics: topicsList,
     );
   }
@@ -62,15 +64,15 @@ class Event {
 class Topic {
   final String title;
   final String sName;
-  final String sDesc;
+  final String sJob;
 
-  Topic({this.title, this.sName, this.sDesc});
+  Topic({this.title, this.sName, this.sJob});
 
   factory Topic.fromJson(Map<String, dynamic> json) {
     return Topic(
-      title: json['topic_title'],
-      sName: json['speaker_name'],
-      sDesc: json['speaker_desc'],
+      title: json['title'],
+      sName: json['speakerName'],
+      sJob: json['speakerJob'],
     );
   }
 }
@@ -132,15 +134,21 @@ class EventItem extends StatelessWidget {
         padding: EdgeInsets.only(top: 16, bottom: 16),
         child: ExpansionTile(
           title: Text(event.title),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: Image.network(
-              event.image,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
+          leading: ClipOval(child: Builder(builder: (context) {
+            if (event.img == null) {
+              return new Container();
+            } else {
+              var img = event.img.replaceAll("data:image/jpeg;base64,", "");
+              Uint8List bytes = base64.decode(img);
+              return Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                height: 60,
+                width: 60,
+                alignment: Alignment.center,
+              );
+            }
+          })),
           children: <Widget>[
             Container(
                 padding: EdgeInsets.only(top: 32, right: 16, left: 16),
@@ -185,9 +193,13 @@ class EventItem extends StatelessWidget {
                           ),
                         ),
                         Flexible(
-                          child: Text(
-                            event.time,
-                          ),
+                          child: Builder(builder: (context) {
+                            var date =
+                            DateFormat("dd/MM/yyyy - hh:mm a").format(
+                              DateTime.parse("${event.date} ${event.time}"),
+                            );
+                            return Text(date);
+                          }),
                         )
                       ],
                     ),
@@ -208,39 +220,47 @@ class EventItem extends StatelessWidget {
                           ),
                         ),
                         Flexible(
-                            child: GestureDetector(
-                          onTap: () => launchURL(
-                              "https://goo.gl/maps/zTFDqmuYrSQ3wQHu9"),
-                          child: Text(
-                            event.location,
-                            style: TextStyle(
+                          child: GestureDetector(
+                            onTap: () => launchURL(event.location),
+                            child: Text(
+                              "Open Google Maps",
+                              style: TextStyle(
                                 color: blue,
-                                decoration: TextDecoration.underline),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
                           ),
-                        ))
+                        )
                       ],
                     ),
                     SizedBox(
                       height: 32,
                     ),
-                    ExpansionTile(
-                      title: Text(
-                        "Topics".toUpperCase(),
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      leading: Icon(Icons.library_books),
-                      backgroundColor: Colors.black.withOpacity(0.05),
-                      children: <Widget>[
-                        Container(
-                          height: 150,
-                          child: ListView.builder(
-                            itemCount: event.topics.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return _buildTopicItem(index);
-                            }),
-                        )
-                      ],
-                    ),
+                    Builder(builder: (context) {
+                      if (event.topics.length > 0) {
+                        return ExpansionTile(
+                          title: Text(
+                            "Topics".toUpperCase(),
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          leading: Icon(Icons.library_books),
+                          backgroundColor: Colors.black.withOpacity(0.05),
+                          children: <Widget>[
+                            Container(
+                              height: 250,
+                              child: ListView.builder(
+                                itemCount: event.topics.length,
+                                itemBuilder:
+                                  (BuildContext context, int index) {
+                                  return _buildTopicItem(index);
+                                }),
+                            )
+                          ],
+                        );
+                      } else {
+                        return Container();
+                      }
+                    }),
                     ButtonTheme(
                       child: ButtonBar(
                         alignment: MainAxisAlignment.spaceBetween,
@@ -265,7 +285,7 @@ class EventItem extends StatelessWidget {
                               'Enroll'.toUpperCase(),
                               style: TextStyle(color: white),
                             ),
-                            onPressed: () => launchURL(event.formUrl),
+                            onPressed: () => launchURL(event.formLink),
                           ),
                         ],
                       ),
@@ -277,7 +297,7 @@ class EventItem extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildTopicItem(int i) {
     return Container(
       padding: EdgeInsets.all(8),
@@ -286,7 +306,8 @@ class EventItem extends StatelessWidget {
         children: <Widget>[
           Text(
             (i + 1).toString() + "- " + event.topics[i].title.toUpperCase(),
-            style: TextStyle(fontSize: 18, color: blue),
+            style: TextStyle(
+              fontSize: 16, color: blue, fontWeight: FontWeight.w500),
           ),
           SizedBox(
             height: 8,
@@ -297,18 +318,20 @@ class EventItem extends StatelessWidget {
                 width: 25,
               ),
               Text(
-                "• " + event.topics[i].sName,
+                "• " + event.topics[i].sName.toUpperCase(),
+                style: TextStyle(fontWeight: FontWeight.w400),
               ),
             ],
           ),
           Row(
             children: <Widget>[
               SizedBox(
-                width: 40,
+                width: 35,
               ),
               Flexible(
                 child: Text(
-                  event.topics[i].sDesc,
+                  event.topics[i].sJob,
+                  style: TextStyle(fontWeight: FontWeight.w300),
                 ),
               )
             ],
