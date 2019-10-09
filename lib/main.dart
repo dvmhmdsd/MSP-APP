@@ -1,10 +1,11 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:msp_app/ui/colors.dart';
-import 'tabs/events.dart';
-import 'tabs/sessions.dart';
-import 'tabs/gallery.dart';
+
 import 'tabs/about.dart';
+import 'tabs/events.dart';
+import 'tabs/gallery.dart';
+import 'tabs/sessions.dart';
 
 const String appTitle = "MSP";
 
@@ -48,16 +49,16 @@ class _HomeState extends State<Home> {
           ),
           bottom: TabBar(tabs: [
             Tab(
-              child: AutoSizeText("Events".toUpperCase(), maxLines: 1,),
+              child: AutoSizeText("Events", maxLines: 1,),
             ),
             Tab(
-              child: AutoSizeText("Sessions".toUpperCase(), maxLines: 1,),
+              child: AutoSizeText("Sessions", maxLines: 1,),
             ),
             Tab(
-              child: AutoSizeText("Gallery".toUpperCase(), maxLines: 1,),
+              child: AutoSizeText("Portfolio", maxLines: 1,),
             ),
             Tab(
-              child: AutoSizeText("About".toUpperCase(), maxLines: 1,),
+              child: AutoSizeText("About", maxLines: 1,),
             ),
           ]),
         ),

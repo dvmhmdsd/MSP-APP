@@ -7,12 +7,12 @@ import 'package:intl/intl.dart';
 import 'package:msp_app/ui/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const baseUrl = "https://msp-app-dashboard.herokuapp.com/api";
+const String apiURL = "https://msp-app-dashboard.herokuapp.com/api/events";
+
 
 class API {
-  static Future getUsers() {
-    var url = baseUrl + "/events";
-    return http.get(url);
+  static Future getEvents() {
+    return http.get(apiURL);
   }
 }
 
@@ -91,7 +91,7 @@ class _EventsState extends State<Events> {
   Future<Event> event;
 
   _getEvents() {
-    API.getUsers().then((response) {
+    API.getEvents().then((response) {
       setState(() {
         Iterable list = json.decode(response.body);
         events = list.map((model) => Event.fromJson(model)).toList();
@@ -111,11 +111,39 @@ class _EventsState extends State<Events> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemBuilder: (BuildContext context, int i) => EventItem(events[i]),
-      itemCount: events.length,
-    );
+    return FutureBuilder(
+      future: http.get(apiURL), // async work
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return new Center(
+              child: CircularProgressIndicator(),
+            );
+          default:
+            if (events.length == 0) {
+              return Center(
+                child: Text("No Events Available Yet."),
+              );
+            }
+            if (snapshot.hasError)
+              return new Center(
+                child: Text(
+                  "An error occurred, please check your internet connection!"),
+              );
+            else
+              return new ListView.builder(
+                padding: EdgeInsets.all(16),
+                itemBuilder: (BuildContext context, int i) =>
+                  EventItem(events[i]),
+                itemCount: events.length,
+              );
+        }
+      });
+    // return ListView.builder(
+    //   padding: EdgeInsets.all(16),
+    //   itemBuilder: (BuildContext context, int i) => EventItem(events[i]),
+    //   itemCount: events.length,
+    // );
   }
 }
 
@@ -144,7 +172,7 @@ class EventItem extends StatelessWidget {
                 bytes,
                 fit: BoxFit.cover,
                 height: 60,
-                width: 60,
+                width: 56,
                 alignment: Alignment.center,
               );
             }
